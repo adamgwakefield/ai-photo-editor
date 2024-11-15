@@ -1,0 +1,2104 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { 
+  Upload, 
+  Image as ImageIcon, 
+  Camera, 
+  Mountain, 
+  Utensils, 
+  Package, 
+  Trash2, 
+  Wand2, 
+  Palette,
+  Sparkles,
+  X,
+  Loader2,
+  Crown,
+  Download,
+  Lock,
+  Settings,
+  Check,
+  Info,
+  Move3D,
+  Sun,
+  SunDim
+} from 'lucide-react';
+
+const REPLICATE_API_KEY = 'r8_6gUmAjq0UAJ3oIF335m6XW7gjjd7N8213FNaG';
+
+// Background Types
+const BACKGROUND_TYPES = {
+  STATIC: 'static',
+  INTERACTIVE: 'interactive',
+  THREED: '3d'
+};
+
+// Backgrounds Configuration
+const BACKGROUNDS = {
+  // Free backgrounds
+  white: { 
+    type: BACKGROUND_TYPES.STATIC, 
+    value: 'solid-#FFFFFF' 
+  },      
+  darkBlue: { 
+    type: BACKGROUND_TYPES.STATIC, 
+    value: 'solid-#2D3748' 
+  },   
+  beach: {
+    type: BACKGROUND_TYPES.STATIC,
+    value: 'linear-gradient(180deg, #87CEEB 0%, #87CEEB 60%, #F5DEB3 60%, #F5DEB3 100%)'
+  },
+  sunset: {
+    type: BACKGROUND_TYPES.STATIC,
+    value: 'linear-gradient(180deg, #FF7E5F 0%, #FEB47B 30%, #FFB88C 60%, #FEC3A6 100%)'
+  },
+  forest: {
+    type: BACKGROUND_TYPES.STATIC,
+    value: 'linear-gradient(180deg, #2E5A1C 0%, #3B7A24 50%, #1E3C13 100%)'
+  },
+  cityNight: {
+    type: BACKGROUND_TYPES.STATIC,
+    value: 'linear-gradient(180deg, #1a1a2e 0%, #16213E 50%, #0F172A 100%)'
+  },
+  studio: {
+    type: BACKGROUND_TYPES.STATIC,
+    value: 'linear-gradient(120deg, #2C3E50 0%, #3498DB 100%)'
+  },
+
+  // Interactive Backgrounds
+  interactiveBeach: {
+    type: BACKGROUND_TYPES.INTERACTIVE,
+    baseScene: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e',
+    variations: {
+      sunrise: { light: 'warm', intensity: 0.8 },
+      midday: { light: 'bright', intensity: 1 },
+      sunset: { light: 'golden', intensity: 0.9 }
+    },
+    premium: true,
+    new: true
+  },
+  interactiveStudio: {
+    type: BACKGROUND_TYPES.INTERACTIVE,
+    baseScene: 'https://images.unsplash.com/photo-1598914187743-6cb7b2c6e9f4',
+    variations: {
+      bright: { light: 'studio', intensity: 1 },
+      moody: { light: 'soft', intensity: 0.7 },
+      dramatic: { light: 'contrast', intensity: 0.9 }
+    },
+    premium: true,
+    new: true
+  },
+  interactiveUrban: {
+    type: BACKGROUND_TYPES.INTERACTIVE,
+    baseScene: 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205',
+    variations: {
+      day: { light: 'natural', intensity: 1 },
+      dusk: { light: 'warm', intensity: 0.8 },
+      night: { light: 'neon', intensity: 0.6 }
+    },
+    premium: true,
+    new: true
+  },
+
+  // 3D Backgrounds
+  beach3d: {
+    type: BACKGROUND_TYPES.THREED,
+    baseScene: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e',
+    depthMap: '/depth-maps/beach.png',
+    lightingMap: '/lighting-maps/beach.png',
+    premium: true,
+    new: true
+  },
+  studio3d: {
+    type: BACKGROUND_TYPES.THREED,
+    baseScene: 'https://images.unsplash.com/photo-1598914187743-6cb7b2c6e9f4',
+    depthMap: '/depth-maps/studio.png',
+    lightingMap: '/lighting-maps/studio.png',
+    premium: true,
+    new: true
+  }
+};
+
+// Background Categories
+const backgroundCategories = [
+  {
+    title: 'Quick Styles',
+    backgrounds: [
+      { id: 'white', label: 'Clean White', description: 'Professional & minimal' },
+      { id: 'darkBlue', label: 'Dark Mode', description: 'Modern dark look' },
+      { id: 'beach', label: 'Beach', description: 'Sunny coastal vibes' },
+      { id: 'sunset', label: 'Sunset', description: 'Warm golden hour' },
+      { id: 'forest', label: 'Forest', description: 'Natural green tones' },
+      { id: 'cityNight', label: 'City Night', description: 'Urban evening mood' },
+      { id: 'studio', label: 'Studio', description: 'Professional studio look' }
+    ]
+  },
+  {
+    title: 'Interactive Scenes',
+    premium: true,
+    new: true,
+    backgrounds: [
+      { 
+        id: 'interactiveBeach', 
+        label: 'Dynamic Beach', 
+        description: 'Interactive beach lighting & time of day',
+        premium: true 
+      },
+      { 
+        id: 'interactiveStudio', 
+        label: 'Pro Studio', 
+        description: 'Professional lighting control',
+        premium: true 
+      },
+      {
+        id: 'interactiveUrban', 
+        label: 'Urban Scene', 
+        description: 'City atmosphere control',
+        premium: true 
+      }
+    ]
+  },
+  {
+    title: '3D Environments',
+    premium: true,
+    new: true,
+    backgrounds: [
+      { 
+        id: 'beach3d', 
+        label: '3D Beach', 
+        description: 'Depth-aware beach scene',
+        premium: true 
+      },
+      { 
+        id: 'studio3d', 
+        label: '3D Studio', 
+        description: 'Professional studio with depth',
+        premium: true 
+      }
+    ]
+  }
+];
+
+// Photo Types
+const photoTypes = [
+  { 
+    id: 'portrait', 
+    icon: Camera, 
+    label: 'Portrait',
+    description: 'Optimizes skin tones and facial details'
+  },
+  { 
+    id: 'landscape', 
+    icon: Mountain, 
+    label: 'Landscape',
+    description: 'Enhances natural colors and contrast'
+  },
+  { 
+    id: 'food', 
+    icon: Utensils, 
+    label: 'Food',
+    description: 'Boosts vibrancy and texture'
+  },
+  { 
+    id: 'product', 
+    icon: Package, 
+    label: 'Product',
+    description: 'Clarifies details and maintains accuracy'
+  }
+];
+
+// Export Options
+const exportFormats = [
+  { id: 'jpg', label: 'JPG', description: 'Best for photos' },
+  { id: 'png', label: 'PNG', description: 'Best for graphics', premium: true },
+  { id: 'webp', label: 'WebP', description: 'Modern format', premium: true }
+];
+
+const exportSizes = [
+  { id: 'original', label: 'Original Size', premium: true },
+  { id: 'large', label: '2048px', premium: true },
+  { id: 'medium', label: '1024px', premium: false },
+  { id: 'small', label: '512px', premium: false }
+];
+
+const PhotoEditor = () => {
+  // Base states
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [photoType, setPhotoType] = useState('portrait');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [currentBackground, setCurrentBackground] = useState(null);
+  const [showBackgrounds, setShowBackgrounds] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Premium states
+  const [isPremiumUser] = useState(false);
+  const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isPreviewingPremium, setIsPreviewingPremium] = useState(false);
+  const [showControls, setShowControls] = useState(true);
+  const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
+  const [imageScale, setImageScale] = useState(1);
+  const [isDragging, setIsDragging] = useState(false);
+  const imageContainerRef = useRef(null);
+  const imageRef = useRef(null);
+
+
+  // Export states
+  const [format, setFormat] = useState('jpg');
+  const [quality, setQuality] = useState(80);
+  const [size, setSize] = useState('medium');
+
+  // Image processing states
+  const [processedImage, setProcessedImage] = useState(null);
+  const [isProcessingMask, setIsProcessingMask] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState(0);
+
+  // Adjustment states
+  const [adjustments, setAdjustments] = useState({
+    brightness: 100,
+    contrast: 100,
+    saturation: 100,
+    sharpness: 100
+  });
+
+  // Interactive Background states
+  const [backgroundVariation, setBackgroundVariation] = useState('default');
+  const [backgroundIntensity, setBackgroundIntensity] = useState(1);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [interactiveMode, setInteractiveMode] = useState(false);
+  const [lastInteraction, setLastInteraction] = useState(Date.now());
+
+  // 3D Effect states
+  const [is3DEnabled, setIs3DEnabled] = useState(false);
+  const [depthMapLoaded, setDepthMapLoaded] = useState(false);
+  const [perspectiveOrigin, setPerspectiveOrigin] = useState({ x: 50, y: 50 });
+  const [rotationAngles, setRotationAngles] = useState({ x: 0, y: 0 });
+
+  // Animation states
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [animationSettings, setAnimationSettings] = useState({
+    speed: 1,
+    intensity: 1,
+    enabled: false
+  });
+
+  // Device and Layout states
+  const [isMobile, setIsMobile] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
+  const [windowSize, setWindowSize] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight
+  });
+
+  const hasPremiumAccess = process.env.NODE_ENV === 'development' || isPremiumUser;
+
+  const constrainPosition = useCallback((x, y, scale) => {
+    if (!imageContainerRef.current || !imageRef.current) return { x, y };
+
+    const container = imageContainerRef.current.getBoundingClientRect();
+    const image = imageRef.current.getBoundingClientRect();
+    
+    const maxX = (container.width - image.width * scale) / 2;
+    const minX = -maxX;
+    const maxY = (container.height - image.height * scale) / 2;
+    const minY = -maxY;
+
+    return {
+      x: Math.min(Math.max(x, minX), maxX),
+      y: Math.min(Math.max(y, minY), maxY)
+    };
+  }, []);
+
+  // Reset Functions
+  const resetAdjustments = useCallback(() => {
+    setAdjustments({
+      brightness: 100,
+      contrast: 100,
+      saturation: 100,
+      sharpness: 100
+    });
+  }, []);
+
+  const resetAllStates = useCallback(() => {
+    setSelectedImage(null);
+    setProcessedImage(null);
+    setCurrentBackground(null);
+    setAdjustments({
+      brightness: 100,
+      contrast: 100,
+      saturation: 100,
+      sharpness: 100
+    });
+    setShowBackgrounds(false);
+    setError(null);
+    setIsPreviewingPremium(false);
+    setBackgroundVariation('default');
+    setBackgroundIntensity(1);
+    setInteractiveMode(false);
+    setIs3DEnabled(false);
+    setRotationAngles({ x: 0, y: 0 });
+    setPerspectiveOrigin({ x: 50, y: 50 });
+    setPhotoType('portrait');
+    setIsProcessing(false);
+    setIsProcessingMask(false);
+    setProcessingProgress(0);
+    setIsExportModalOpen(false);
+    setIsPremiumModalOpen(false);
+    if (animationSettings.enabled) {
+      setAnimationSettings({
+        speed: 1,
+        intensity: 1,
+        enabled: false
+      });
+    }
+  }, []);
+
+  const handleDeleteImage = useCallback(() => {
+    resetAllStates();
+  }, [resetAllStates]);
+
+  const handleReset = useCallback(() => {
+    if (selectedImage) {
+      setProcessedImage(null);
+      setCurrentBackground(null);
+      resetAdjustments();
+      setBackgroundVariation('default');
+      setBackgroundIntensity(1);
+      setInteractiveMode(false);
+      setIs3DEnabled(false);
+      setRotationAngles({ x: 0, y: 0 });
+      setPerspectiveOrigin({ x: 50, y: 50 });
+      setIsProcessing(false);
+      setIsProcessingMask(false);
+      setProcessingProgress(0);
+      if (animationSettings.enabled) {
+        setAnimationSettings({
+          speed: 1,
+          intensity: 1,
+          enabled: false
+        });
+      }
+    }
+  }, [selectedImage, resetAdjustments]);
+
+  const resetForNewImage = useCallback(() => {
+    setProcessedImage(null);
+    setCurrentBackground(null);
+    resetAdjustments();
+    setError(null);
+    setIsPreviewingPremium(false);
+    setBackgroundVariation('default');
+    setBackgroundIntensity(1);
+    setInteractiveMode(false);
+    setIs3DEnabled(false);
+    setRotationAngles({ x: 0, y: 0 });
+    setPerspectiveOrigin({ x: 50, y: 50 });
+    setIsProcessing(false);
+    setIsProcessingMask(false);
+    setProcessingProgress(0);
+  }, [resetAdjustments]);
+
+  const getBackgroundStyle = useCallback((backgroundId) => {
+    if (!backgroundId || !BACKGROUNDS[backgroundId]) {
+      return {};
+    }
+    
+    const bg = BACKGROUNDS[backgroundId];
+    
+    switch (bg.type) {
+      case BACKGROUND_TYPES.STATIC:
+        if (bg.value.startsWith('solid-')) {
+          return { backgroundColor: bg.value.replace('solid-', '') };
+        }
+        return { background: bg.value };
+        
+      case BACKGROUND_TYPES.INTERACTIVE:
+        return {
+          backgroundImage: `url(${bg.baseScene})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          filter: `brightness(${backgroundIntensity})`,
+          transition: 'all 0.3s ease-out'
+        };
+        
+      case BACKGROUND_TYPES.THREED:
+        return {
+          backgroundImage: `url(${bg.baseScene})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          transform: is3DEnabled ? 
+            `perspective(1000px) rotateX(${rotationAngles.x}deg) rotateY(${rotationAngles.y}deg)` : 
+            'none',
+          transformOrigin: `${perspectiveOrigin.x}% ${perspectiveOrigin.y}%`,
+          transition: 'transform 0.3s ease-out'
+        };
+        
+      default:
+        return {};
+    }
+  }, [backgroundIntensity, is3DEnabled, rotationAngles, perspectiveOrigin]);
+
+  const CLOUDINARY_CLOUD_NAME = 'daxic9peu';
+  const CLOUDINARY_UPLOAD_PRESET = 'background_removal'; // Using your new preset name
+  
+  const REPLICATE_API_KEY = 'r8_6gUmAjq0UAJ3oIF335m6XW7gjjd7N8213FNaG';
+
+  const handleBackgroundChange = useCallback(async (backgroundId) => {
+    const background = BACKGROUNDS[backgroundId];
+    
+    if (background?.premium && !isPremiumUser) {
+      setIsPreviewingPremium(true);
+    }
+
+    setIsProcessing(true);
+    setError(null);
+    
+    try {
+      if (!processedImage) {
+        setIsProcessingMask(true);
+        setProcessingProgress(0);
+
+        if (!selectedImage) {
+          throw new Error('No image selected');
+        }
+
+        try {
+          // Convert image to base64
+          const imageResponse = await fetch(selectedImage);
+          const blob = await imageResponse.blob();
+          const base64Image = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const base64String = reader.result.split(',')[1];
+              resolve(base64String);
+            };
+            reader.readAsDataURL(blob);
+          });
+
+          console.log('Initiating background removal...');
+          setProcessingProgress(10);
+
+          // Start the process
+          const startResponse = await fetch('http://localhost:3001/api/remove-background', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              image: base64Image
+            })
+          });
+
+          const startData = await startResponse.text();
+          console.log('Initial response text:', startData);
+
+          if (!startResponse.ok) {
+            throw new Error(`Failed to start process: ${startData}`);
+          }
+
+          const prediction = JSON.parse(startData);
+          console.log('Prediction data:', prediction);
+
+          if (!prediction.id) {
+            throw new Error('No prediction ID received');
+          }
+
+          setProcessingProgress(30);
+
+          // Poll for status
+          let attempts = 0;
+          const maxAttempts = 60; // 60 seconds timeout
+          let result = prediction;
+
+          while (attempts < maxAttempts) {
+            console.log(`Checking status - Attempt ${attempts + 1}/${maxAttempts}`);
+            
+            try {
+              const statusResponse = await fetch(
+                `http://localhost:3001/api/get-prediction/${prediction.id}`
+              );
+
+              const statusData = await statusResponse.text();
+              console.log('Status response text:', statusData);
+
+              if (!statusResponse.ok) {
+                throw new Error(`Status check failed: ${statusData}`);
+              }
+
+              result = JSON.parse(statusData);
+              console.log('Current prediction status:', result.status);
+
+              if (result.status === "succeeded") {
+                console.log('Processing completed successfully');
+                break;
+              }
+              
+              if (result.status === "failed") {
+                throw new Error('Background removal failed');
+              }
+
+              // Update progress
+              setProcessingProgress(Math.min(90, 30 + (attempts * 2)));
+              
+              // Wait before next attempt
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              attempts++;
+            } catch (pollError) {
+              console.error('Poll error:', pollError);
+              throw new Error(`Status check error: ${pollError.message}`);
+            }
+          }
+
+          if (attempts >= maxAttempts) {
+            throw new Error('Processing timeout - please try again');
+          }
+
+          if (!result.output) {
+            throw new Error('No output URL received');
+          }
+
+          const processedUrl = result.output;
+          console.log('Final processed URL:', processedUrl);
+
+          setProcessedImage(processedUrl);
+          setProcessingProgress(100);
+
+        } catch (processingError) {
+          console.error('Detailed processing error:', processingError);
+          setProcessedImage(selectedImage);
+          throw processingError;
+        }
+      }
+
+      setCurrentBackground(backgroundId);
+      // Rest of your code remains the same...
+      
+    } catch (error) {
+      console.error('Full error details:', error);
+      setError(error.message || 'Failed to process image. Please try again.');
+      setProcessedImage(null);
+      setCurrentBackground(null);
+    } finally {
+      setIsProcessing(false);
+      setIsProcessingMask(false);
+      setShowBackgrounds(false);
+      setProcessingProgress(0);
+    }
+}, [selectedImage, processedImage, isPremiumUser, currentBackground]);
+
+  // Effect for handling window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
+      setIsMobile(window.innerWidth < 768);
+      setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024);
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize();
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Effect for handling 3D animation
+  useEffect(() => {
+    let animationFrame;
+
+    const animate = () => {
+      if (is3DEnabled && !interactiveMode) {
+        const now = Date.now();
+        const timeSinceLastInteraction = now - lastInteraction;
+        
+        if (timeSinceLastInteraction > 1000) {
+          setRotationAngles(prev => ({
+            x: Math.sin(now / 2000) * 2,
+            y: Math.cos(now / 2000) * 2
+          }));
+        }
+      }
+      animationFrame = requestAnimationFrame(animate);
+    };
+
+    if (is3DEnabled) {
+      animationFrame = requestAnimationFrame(animate);
+    }
+
+    return () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [is3DEnabled, interactiveMode, lastInteraction]);
+
+  // Image to Base64 conversion
+  const imageToBase64 = async (imageUrl) => {
+    try {
+      console.log('Converting image to base64...');
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error('Failed to fetch image');
+      }
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result.split(',')[1];
+          console.log('Base64 conversion successful');
+          resolve(base64String);
+        };
+        reader.onerror = () => {
+          console.error('FileReader error');
+          reject(new Error('Failed to convert image to base64'));
+        };
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('Image to base64 conversion error:', error);
+      throw error;
+    }
+  };
+
+  // Mouse movement handler for interactive backgrounds
+  const handleMouseMove = useCallback((e) => {
+    if (!interactiveMode && !is3DEnabled) return;
+    
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    
+    setPerspectiveOrigin({ x, y });
+    setMousePosition({ x: x / 100, y: y / 100 });
+    setLastInteraction(Date.now());
+
+    if (interactiveMode) {
+      setBackgroundIntensity(Math.max(0.5, Math.min(1.5, y / 50)));
+    }
+
+    if (is3DEnabled) {
+      setRotationAngles({
+        x: (y - 50) * 0.1,
+        y: (x - 50) * 0.1
+      });
+    }
+  }, [interactiveMode, is3DEnabled]);
+
+  // Image upload handler
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      try {
+        resetForNewImage();
+        const imageUrl = URL.createObjectURL(file);
+        setSelectedImage(imageUrl);
+      } catch (error) {
+        setError('Failed to upload image. Please try again.');
+        console.error('Upload error:', error);
+      }
+    }
+  };
+
+  // Handle adjustments
+  const handleAdjustment = (type, value) => {
+    setAdjustments(prev => ({
+      ...prev,
+      [type]: parseInt(value)
+    }));
+  };
+
+  // Handle photo type changes and adjustments
+  const handlePhotoTypeChange = useCallback((type) => {
+    console.log('Photo type changed to:', type);
+    
+    const photoTypeAdjustments = {
+      portrait: {
+        brightness: 130,  // More dramatic changes
+        contrast: 140,
+        saturation: 80,   // Reduced for skin tones
+        sharpness: 150    // Increased for details
+      },
+      landscape: {
+        brightness: 120,
+        contrast: 150,    // Much higher for dramatic skies
+        saturation: 170,  // Much higher for vivid colors
+        sharpness: 130
+      },
+      food: {
+        brightness: 140,  // Brighter for appetizing look
+        contrast: 160,    // Higher for texture
+        saturation: 180,  // Much higher for vibrant food colors
+        sharpness: 140
+      },
+      product: {
+        brightness: 125,
+        contrast: 130,
+        saturation: 90,   // Lower for professional look
+        sharpness: 140
+      }
+    };
+  
+    // Simpler adjustment application
+    if (photoTypeAdjustments[type]) {
+      const newAdjustments = photoTypeAdjustments[type];
+      console.log('Applying new adjustments:', newAdjustments);
+      
+      // Set state directly
+      setAdjustments(newAdjustments);
+  
+      // Force an immediate update on the image
+      requestAnimationFrame(() => {
+        const imgElement = document.querySelector('#preview-image');
+        if (imgElement) {
+          imgElement.style.filter = `
+            brightness(${newAdjustments.brightness / 100})
+            contrast(${newAdjustments.contrast}%)
+            saturate(${newAdjustments.saturation}%)
+            ${newAdjustments.sharpness !== 100 ? `contrast(${newAdjustments.sharpness}%)` : ''}
+          `;
+        }
+      });
+    }
+  }, []);
+
+  // Export handler
+  const handleExport = async () => {
+    if (isPreviewingPremium && !isPremiumUser) {
+      setIsPremiumModalOpen(true);
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      const img = document.querySelector('#preview-image');
+      
+      // Set canvas size based on export settings
+      let targetWidth = img.naturalWidth;
+      let targetHeight = img.naturalHeight;
+      
+      if (size !== 'original') {
+        const maxSize = parseInt(size);
+        if (targetWidth > targetHeight) {
+          targetWidth = maxSize;
+          targetHeight = (maxSize * img.naturalHeight) / img.naturalWidth;
+        } else {
+          targetHeight = maxSize;
+          targetWidth = (maxSize * img.naturalWidth) / img.naturalHeight;
+        }
+      }
+      
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+      
+      // Draw background if exists
+      if (currentBackground) {
+        const bgImg = new Image();
+        const bg = BACKGROUNDS[currentBackground];
+        bgImg.src = bg.type === BACKGROUND_TYPES.STATIC ? bg.value : bg.baseScene;
+        await new Promise(resolve => bgImg.onload = resolve);
+        ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+      }
+      
+      // Apply filters
+      ctx.filter = `
+        brightness(${adjustments.brightness / 100})
+        contrast(${adjustments.contrast}%)
+        saturate(${adjustments.saturation}%)
+        ${adjustments.sharpness !== 100 ? `sharpen(${adjustments.sharpness}%)` : ''}
+      `;
+      
+      // Draw main image
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      
+      // Add watermark for free users
+      if (!isPremiumUser) {
+        ctx.font = `${Math.max(targetWidth / 20, 20)}px Inter`;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.textAlign = 'center';
+        ctx.fillText('AI Photo Editor', canvas.width / 2, canvas.height - 30);
+      }
+      
+      // Convert to desired format
+      const mimeType = `image/${format}`;
+      const finalQuality = isPremiumUser ? quality / 100 : 0.7;
+      const dataUrl = canvas.toDataURL(mimeType, finalQuality);
+      
+      // Download
+      const link = document.createElement('a');
+      link.download = `edited-photo.${format}`;
+      link.href = dataUrl;
+      link.click();
+
+    } catch (error) {
+      setError('Failed to export image. Please try again.');
+      console.error('Export error:', error);
+    } finally {
+      setIsProcessing(false);
+      setIsExportModalOpen(false);
+    }
+  };
+
+  // Poll prediction status
+  const pollPrediction = async (predictionId) => {
+    let attempts = 0;
+    const maxAttempts = 30;
+
+    while (attempts < maxAttempts) {
+      try {
+        setProcessingProgress(60 + (attempts / maxAttempts) * 40);
+        const response = await fetch(`${API_BASE_URL}/prediction/${predictionId}`);
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to check prediction status');
+        }
+
+        const prediction = await response.json();
+        
+        if (prediction.status === 'succeeded') {
+          return prediction.output;
+        } else if (prediction.status === 'failed') {
+          throw new Error(prediction.error || 'Background removal failed');
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        attempts++;
+      } catch (error) {
+        console.error('Polling error:', error);
+        throw error;
+      }
+    }
+    throw new Error('Processing timeout - please try again');
+  };
+
+  // Background Control Components
+  const BackgroundControls = ({ background }) => {
+    if (!background || !BACKGROUNDS[background]) return null;
+    
+    const bg = BACKGROUNDS[background];
+    
+    return (
+      <div className="absolute bottom-4 left-4 right-4 bg-gray-900/80 backdrop-blur-sm rounded-xl p-4 z-40">
+        <div className="space-y-4">
+          {/* Interactive Controls */}
+          {bg.type === BACKGROUND_TYPES.INTERACTIVE && (
+            <>
+              <div className="flex items-center justify-between">
+                <h3 className="text-white font-medium text-sm">Lighting Control</h3>
+                <span className="text-xs text-purple-400">
+                  Move mouse over image to adjust
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {Object.entries(bg.variations).map(([name, settings]) => (
+                  <button
+                    key={name}
+                    onClick={() => setBackgroundVariation(name)}
+                    className={`px-3 py-2 rounded-lg text-sm ${
+                      backgroundVariation === name
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    {name.charAt(0).toUpperCase() + name.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <label className="text-sm text-gray-300">Intensity</label>
+                  <span className="text-sm text-purple-400">
+                    {Math.round(backgroundIntensity * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="50"
+                  max="150"
+                  value={backgroundIntensity * 100}
+                  onChange={(e) => setBackgroundIntensity(parseInt(e.target.value) / 100)}
+                  className="slider-purple w-full"
+                />
+              </div>
+            </>
+          )}
+
+          {/* 3D Controls */}
+          {bg.type === BACKGROUND_TYPES.THREED && (
+            <>
+              <div className="flex items-center justify-between">
+                <h3 className="text-white font-medium text-sm">3D Effect</h3>
+                <button
+                  onClick={() => setIs3DEnabled(!is3DEnabled)}
+                  className={`px-3 py-1 rounded-lg text-xs ${
+                    is3DEnabled
+                      ? 'bg-purple-500 text-white'
+                      : 'bg-gray-700 text-gray-300'
+                  }`}
+                >
+                  {is3DEnabled ? 'Disable' : 'Enable'} 3D
+                </button>
+              </div>
+              {is3DEnabled && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <label className="text-sm text-gray-300">Depth</label>
+                      <span className="text-sm text-purple-400">
+                        {Math.round(rotationAngles.x * 10)}°
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="-10"
+                      max="10"
+                      value={rotationAngles.x * 10}
+                      onChange={(e) => setRotationAngles(prev => ({
+                        ...prev,
+                        x: parseInt(e.target.value) / 10
+                      }))}
+                      className="slider-purple w-full"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <label className="text-sm text-gray-300">Rotation</label>
+                      <span className="text-sm text-purple-400">
+                        {Math.round(rotationAngles.y * 10)}°
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="-10"
+                      max="10"
+                      value={rotationAngles.y * 10}
+                      onChange={(e) => setRotationAngles(prev => ({
+                        ...prev,
+                        y: parseInt(e.target.value) / 10
+                      }))}
+                      className="slider-purple w-full"
+                    />
+                  </div>
+                  <div className="flex justify-between">
+                    <button
+                      onClick={() => setAnimationSettings(prev => ({
+                        ...prev,
+                        enabled: !prev.enabled
+                      }))}
+                      className={`px-3 py-1 rounded-lg text-xs ${
+                        animationSettings.enabled
+                          ? 'bg-purple-500 text-white'
+                          : 'bg-gray-700 text-gray-300'
+                      }`}
+                    >
+                      Auto Animate
+                    </button>
+                    <button
+                      onClick={() => {
+                        setRotationAngles({ x: 0, y: 0 });
+                        setPerspectiveOrigin({ x: 50, y: 50 });
+                      }}
+                      className="px-3 py-1 rounded-lg text-xs bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    >
+                      Reset Position
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Premium Upgrade Button */}
+          {!isPremiumUser && bg.premium && (
+            <div className="mt-4 pt-4 border-t border-gray-700/50">
+              <button
+                onClick={() => setIsPremiumModalOpen(true)}
+                className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+              >
+                <Crown className="w-4 h-4" />
+                Upgrade to Save with Effects
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Processing Overlay Component
+  const ProcessingOverlay = ({ progress, message }) => (
+    <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="text-white text-center">
+        <Loader2 className="w-16 h-16 animate-spin mb-4" />
+        <p className="text-xl font-medium mb-4">{message}</p>
+        {progress > 0 && (
+          <div className="w-48 bg-gray-700 rounded-full h-1.5 mb-2 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-[#1a1a2e] to-black p-8 font-['Inter']">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 mb-8 flex items-center gap-3">
+          <Camera className="w-8 h-8 text-pink-500" />
+          AI Photo Editor
+        </h1>
+
+        {/* Premium Banner */}
+        {!isPremiumUser && (
+          <div className="bg-gradient-to-r from-purple-600/10 to-pink-600/10 border border-purple-500/20 rounded-xl p-4 mb-6 relative">
+            <button 
+              onClick={() => setIsPremiumModalOpen(false)}
+              className="absolute top-2 right-2 text-gray-400 hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <div className="flex items-center gap-4">
+              <Crown className="w-8 h-8 text-yellow-500 animate-pulse" />
+              <div className="flex-1">
+                <h3 className="text-white font-semibold">Try Premium Features!</h3>
+                <p className="text-gray-300 text-sm">
+                  Interactive 3D backgrounds, advanced effects, and more!
+                </p>
+              </div>
+              <button
+                onClick={() => setIsPremiumModalOpen(true)}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 shadow-lg shadow-purple-500/25"
+              >
+                Upgrade Now
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 flex items-center gap-2">
+            <X className="w-5 h-5" />
+            {error}
+          </div>
+        )}
+       <div className="flex flex-col md:flex-row gap-8">
+       {/* Left side - Image Display */}
+       <div className="flex-1">
+        <div className="bg-gray-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-xl border border-gray-700/50">
+          {selectedImage ? (
+      <div 
+        className="relative rounded-xl overflow-hidden group bg-gray-800/30"
+        onMouseMove={handleMouseMove}
+        style={{ 
+          height: '600px',
+          perspective: '1000px'
+        }}
+      >
+        {/* Background layer */}
+        {currentBackground && (
+          <div 
+            className={`absolute inset-0 w-full h-full transition-all duration-300 ${
+              is3DEnabled ? 'transform-gpu' : ''
+            }`}
+            style={getBackgroundStyle(currentBackground)}
+          />
+        )}
+        
+        {/* Image layer with fixed height container */}
+        <div 
+  ref={imageContainerRef}
+  className="relative z-10 w-full h-full flex items-center justify-center overflow-hidden"
+>
+  {processedImage ? (
+    <div
+      className={`relative ${isPremiumUser ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'}`}
+      style={{
+        transform: isPremiumUser ? `translate(${imagePosition.x}px, ${imagePosition.y}px)` : 'none',
+      }}
+      onMouseDown={(e) => {
+        if (isPremiumUser) {
+          setIsDragging(true);
+          const rect = e.currentTarget.getBoundingClientRect();
+          const offsetX = e.clientX - rect.left - imagePosition.x;
+          const offsetY = e.clientY - rect.top - imagePosition.y;
+          
+          const handleMouseMove = (e) => {
+            const newX = e.clientX - rect.left - offsetX;
+            const newY = e.clientY - rect.top - offsetY;
+            const constrained = constrainPosition(newX, newY, imageScale);
+            setImagePosition(constrained);
+          };
+          
+          const handleMouseUp = () => {
+            setIsDragging(false);
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+          };
+          
+          window.addEventListener('mousemove', handleMouseMove);
+          window.addEventListener('mouseup', handleMouseUp);
+        }
+      }}
+    >
+      <img 
+        ref={imageRef}
+        id="preview-image"
+        src={processedImage}
+        alt="Processed Preview"
+        className="max-w-[90%] max-h-[90%] object-contain origin-center"
+        style={{
+          filter: `
+            brightness(${adjustments.brightness / 100})
+            contrast(${adjustments.contrast}%)
+            saturate(${adjustments.saturation}%)
+            ${adjustments.sharpness !== 100 ? `sharpen(${adjustments.sharpness}%)` : ''}
+          `,
+          mixBlendMode: currentBackground ? 'multiply' : 'normal',
+          transform: isPremiumUser ? `scale(${imageScale})` : 'none',
+          transition: 'transform 0.1s ease-out',
+        }}
+      />
+      
+      {/* Resize handle */}
+      {isPremiumUser && (
+        <>
+          <div 
+            className="absolute -bottom-4 -right-4 w-8 h-8 bg-gray-900/90 backdrop-blur-sm rounded-full 
+              cursor-se-resize flex items-center justify-center hover:bg-gray-800 
+              transition-all duration-300 border border-gray-700/50 shadow-lg
+              group"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              const startX = e.clientX;
+              const startY = e.clientY;
+              const startScale = imageScale;
+              
+              const handleMouseMove = (e) => {
+                const deltaX = e.clientX - startX;
+                const deltaY = e.clientY - startY;
+                const delta = Math.max(deltaX, deltaY);
+                const scaleFactor = 0.005;
+                const newScale = Math.max(0.5, Math.min(2, startScale + (delta * scaleFactor)));
+                
+                setImageScale(newScale);
+                
+                const constrained = constrainPosition(
+                  imagePosition.x,
+                  imagePosition.y,
+                  newScale
+                );
+                setImagePosition(constrained);
+              };
+              
+              const handleMouseUp = () => {
+                window.removeEventListener('mousemove', handleMouseMove);
+                window.removeEventListener('mouseup', handleMouseUp);
+              };
+              
+              window.addEventListener('mousemove', handleMouseMove);
+              window.addEventListener('mouseup', handleMouseUp);
+            }}
+          >
+            <svg 
+              width="14" 
+              height="14" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2"
+              className="text-gray-300 group-hover:text-white transition-colors duration-300"
+            >
+              <path d="M21 3L3 21M21 13V21H13M21 8V21H8" />
+            </svg>
+          </div>
+
+          {/* Size indicator */}
+          <div
+            id="size-indicator"
+            className="absolute -top-8 left-1/2 transform -translate-x-1/2 
+              bg-gray-900/90 text-white text-xs py-1.5 px-3 rounded-full 
+              backdrop-blur-sm border border-gray-700/50 shadow-lg
+              transition-opacity duration-300"
+            style={{ 
+              opacity: isDragging ? 1 : 0,
+              pointerEvents: 'none'
+            }}
+          >
+            <div className="flex items-center gap-1.5">
+              <svg 
+                width="12" 
+                height="12" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2"
+                className="text-purple-400"
+              >
+                <path d="M21 21H3M21 3H3M12 21V3" />
+              </svg>
+              <span className="font-medium">{Math.round(imageScale * 100)}%</span>
+            </div>
+          </div>
+
+          {/* Reset Size Button */}
+          {imageScale !== 1 && (
+            <button
+              onClick={() => {
+                setImageScale(1);
+                const constrained = constrainPosition(imagePosition.x, imagePosition.y, 1);
+                setImagePosition(constrained);
+              }}
+              className="absolute -top-8 -right-8 bg-gray-900/90 text-gray-300 p-2 
+                rounded-full backdrop-blur-sm border border-gray-700/50 shadow-lg
+                hover:text-white hover:bg-gray-800 transition-all duration-300"
+            >
+              <svg 
+                width="12" 
+                height="12" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2"
+              >
+                <path d="M3 12h18M12 3v18" />
+              </svg>
+            </button>
+          )}
+        </>
+      )}
+
+      {/* Premium Feature Overlay */}
+      {!isPremiumUser && (
+        <div 
+          className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 hover:opacity-100 
+            transition-opacity duration-300 flex items-center justify-center cursor-pointer"
+          onClick={() => setIsPremiumModalOpen(true)}
+        >
+          <div className="text-center p-6">
+            <Crown className="w-12 h-12 text-yellow-500 mx-auto mb-4 animate-bounce" />
+            <h3 className="text-xl font-bold text-white mb-2">
+              Premium Feature
+            </h3>
+            <p className="text-gray-300 mb-4">
+              Position & resize your image freely
+            </p>
+            <button
+              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 
+                hover:to-pink-600 text-white px-6 py-3 rounded-xl font-medium transition-all 
+                duration-300 transform hover:scale-105 shadow-lg shadow-purple-500/25"
+            >
+              Upgrade to Premium
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  ) : (
+    <img 
+      src={selectedImage}
+      alt="Original"
+      className="max-w-[90%] max-h-[90%] object-contain"
+    />
+  )}
+</div>
+
+{/* Image Controls - Only shown for premium users */}
+{processedImage && isPremiumUser && (
+  <div className="mt-4 bg-gray-900/90 backdrop-blur-sm rounded-xl p-4">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-white font-medium text-sm">Image Position & Size</h3>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              setImagePosition({ x: 0, y: 0 });
+              setImageScale(1);
+            }}
+            className="px-3 py-1 rounded-lg text-xs bg-gray-700 text-gray-300 hover:bg-gray-600"
+          >
+            Reset Position
+          </button>
+          <button
+            onClick={() => setImageScale(1)}
+            className="px-3 py-1 rounded-lg text-xs bg-gray-700 text-gray-300 hover:bg-gray-600"
+          >
+            Reset Size
+          </button>
+        </div>
+      </div>
+      
+      <div className="space-y-2">
+        <div className="flex justify-between items-center">
+          <label className="text-sm text-gray-300">Size</label>
+          <span className="text-sm text-purple-400">
+            {Math.round(imageScale * 100)}%
+          </span>
+        </div>
+        <input
+          type="range"
+          min="10"
+          max="300"
+          value={imageScale * 100}
+          onChange={(e) => setImageScale(parseInt(e.target.value) / 100)}
+          className="slider-purple w-full"
+        />
+      </div>
+    </div>
+  </div>
+)}
+
+{/* Premium Feature Promotion - Shown for non-premium users */}
+{!isPremiumUser && processedImage && (
+  <div className="mt-4 bg-purple-500/10 rounded-xl p-4 border border-purple-500/20">
+    <div className="flex items-start gap-3">
+      <Crown className="w-5 h-5 text-yellow-500 mt-0.5" />
+      <div>
+        <h4 className="text-white font-medium mb-1">Premium Image Controls</h4>
+        <p className="text-sm text-gray-300">
+          Upgrade to freely position and resize your image on any background
+        </p>
+      </div>
+    </div>
+  </div>
+)}
+
+        {/* Processing Overlay */}
+        {(isProcessing || isProcessingMask) && (
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="text-white text-center">
+              <Loader2 className="w-16 h-16 animate-spin mb-4" />
+              <p className="text-xl font-medium mb-4">
+                {isProcessingMask ? 'Removing Background...' : 'Applying Effects...'}
+              </p>
+              {processingProgress > 0 && (
+                <div className="w-48 bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-300"
+                    style={{ width: `${processingProgress}%` }}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Background Controls */}
+        {currentBackground && showControls && (
+          <div className="mt-4 bg-gray-900/90 backdrop-blur-sm rounded-xl p-4 relative">
+
+          {/* Close Button */}
+          <button
+            onClick={() => setShowControls(false)}
+            className="absolute top-2 right-2 text-gray-400 hover:text-white transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>  
+
+          <div className="space-y-4">
+      {/* Interactive Controls */}
+      {BACKGROUNDS[currentBackground].type === BACKGROUND_TYPES.INTERACTIVE && (
+        <>
+          <div className="flex items-center justify-between">
+            <h3 className="text-white font-medium text-sm">Lighting Control</h3>
+            <span className="text-xs text-purple-400">
+              Move mouse over image to adjust
+            </span>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {Object.entries(BACKGROUNDS[currentBackground].variations).map(([name]) => (
+              <button
+                key={name}
+                onClick={() => setBackgroundVariation(name)}
+                className={`px-3 py-2 rounded-lg text-sm ${
+                  backgroundVariation === name
+                    ? 'bg-purple-500 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                {name.charAt(0).toUpperCase() + name.slice(1)}
+              </button>
+            ))}
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <label className="text-sm text-gray-300">Intensity</label>
+              <span className="text-sm text-purple-400">
+                {Math.round(backgroundIntensity * 100)}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min="50"
+              max="150"
+              value={backgroundIntensity * 100}
+              onChange={(e) => setBackgroundIntensity(parseInt(e.target.value) / 100)}
+              className="slider-purple w-full"
+            />
+          </div>
+        </>
+      )}
+
+              {/* 3D Controls */}
+              {BACKGROUNDS[currentBackground].type === BACKGROUND_TYPES.THREED && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-white font-medium text-sm">3D Effect</h3>
+                    <button
+                      onClick={() => setIs3DEnabled(!is3DEnabled)}
+                      className={`px-3 py-1 rounded-lg text-xs ${
+                        is3DEnabled
+                          ? 'bg-purple-500 text-white'
+                          : 'bg-gray-700 text-gray-300'
+                      }`}
+                    >
+                      {is3DEnabled ? 'Disable' : 'Enable'} 3D
+                    </button>
+                  </div>
+          
+                  {is3DEnabled && (
+                    <>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <label className="text-sm text-gray-300">Depth</label>
+                          <span className="text-sm text-purple-400">
+                            {Math.round(rotationAngles.x * 10)}°
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="-10"
+                          max="10"
+                          value={rotationAngles.x * 10}
+                          onChange={(e) => setRotationAngles(prev => ({
+                            ...prev,
+                            x: parseInt(e.target.value) / 10
+                          }))}
+                          className="slider-purple w-full"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <label className="text-sm text-gray-300">Rotation</label>
+                          <span className="text-sm text-purple-400">
+                            {Math.round(rotationAngles.y * 10)}°
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="-10"
+                          max="10"
+                          value={rotationAngles.y * 10}
+                          onChange={(e) => setRotationAngles(prev => ({
+                            ...prev,
+                            y: parseInt(e.target.value) / 10
+                          }))}
+                          className="slider-purple w-full"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between gap-2">
+                        <button
+                          onClick={() => setAnimationSettings(prev => ({
+                            ...prev,
+                            enabled: !prev.enabled
+                          }))}
+                          className={`flex-1 px-3 py-1.5 rounded-lg text-xs ${
+                            animationSettings.enabled
+                              ? 'bg-purple-500 text-white'
+                              : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                          }`}
+                        >
+                          Auto Animate
+                        </button>
+                        <button
+                          onClick={() => {
+                            setRotationAngles({ x: 0, y: 0 });
+                            setPerspectiveOrigin({ x: 50, y: 50 });
+                          }}
+                          className="flex-1 px-3 py-1.5 rounded-lg text-xs bg-gray-700 text-gray-300 hover:bg-gray-600"
+                        >
+                          Reset Position
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Premium Upgrade Button */}
+              {!isPremiumUser && BACKGROUNDS[currentBackground].premium && (
+                <div className="mt-4 pt-4 border-t border-gray-700/50">
+                  <button
+                    onClick={() => setIsPremiumModalOpen(true)}
+                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2"
+                  >
+                    <Crown className="w-4 h-4" />
+                    Upgrade to Save with Effects
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    ) : (
+      <div className="aspect-video bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-700/50 hover:border-purple-500/50 transition-colors duration-300">
+        <label className="cursor-pointer flex flex-col items-center gap-4 group">
+          <div className="p-4 rounded-full bg-gradient-to-r from-pink-500/10 to-purple-500/10 group-hover:from-pink-500/20 group-hover:to-purple-500/20 transition-all duration-300">
+            <Upload className="w-12 h-12 text-gradient-to-r from-pink-500 to-purple-500" />
+          </div>
+          <span className="text-gray-400 text-lg font-medium group-hover:text-white transition-colors duration-300">
+            Drop your image here
+          </span>
+          <p className="text-gray-500 text-sm">or click to upload</p>
+          <input 
+            type="file" 
+            accept="image/*" 
+            onChange={handleImageUpload} 
+            className="hidden"
+          />
+        </label>
+      </div>
+    )}
+  </div>
+</div>
+
+      {/* Right side - Controls */}
+      <div className="w-full md:w-80">
+        <div className="bg-gray-800/50 backdrop-blur-xl p-6 rounded-2xl shadow-xl space-y-8 border border-gray-700/50">
+          {/* Controls Section */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500">
+              Controls
+            </h3>
+            <div className="grid grid-cols-3 gap-3">
+              <button
+                onClick={() => setShowBackgrounds(!showBackgrounds)}
+                className="flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-300 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg shadow-purple-500/25"
+                title="Change Background"
+              >
+                <Wand2 className="w-5 h-5" />
+                <span className="text-xs font-medium">Background</span>
+              </button>
+        
+              {(is3DEnabled || interactiveMode) && (
+                <button
+                  onClick={() => {
+                    setIs3DEnabled(false);
+                    setInteractiveMode(false);
+                    setRotationAngles({ x: 0, y: 0 });
+                    setPerspectiveOrigin({ x: 50, y: 50 });
+                  }}
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-300 bg-purple-500/20 hover:bg-purple-500/30 text-white"
+                  title="Reset Effects"
+                >
+                  <Settings className="w-5 h-5" />
+                  <span className="text-xs font-medium">Reset</span>
+          </button>
+        )}
+        
+        <button
+          onClick={handleDeleteImage}
+          className="flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-300 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white shadow-lg shadow-pink-500/25"
+          title="Delete Image"
+        >
+          <Trash2 className="w-5 h-5" />
+          <span className="text-xs font-medium">Delete</span>
+        </button>
+      </div>
+    </div>
+
+          {/* Photo Type Selection */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500">
+              Photo Type
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              {photoTypes.map(({ id, icon: Icon, label }) => (
+                <button
+                  key={id}
+                  className={`flex items-center gap-2 p-3 rounded-xl transition-all duration-300 ${
+                    photoType === id 
+                      ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-lg shadow-purple-500/25' 
+                      : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'
+                  }`}
+                  onClick={() => handlePhotoTypeChange(id)}
+              >
+                  <Icon className="w-4 h-4" />
+                  <span className="font-medium">{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+    
+              {/* Adjustments */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500">
+                  Adjustments
+                </h3>
+                <div className="space-y-6">
+                  {Object.entries(adjustments).map(([key, value]) => (
+                    <div key={key} className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <label className="text-sm capitalize text-gray-300 font-medium">
+                          {key}
+                        </label>
+                        <span className="text-sm text-purple-400 font-medium">
+                          {value}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="200"
+                        value={value}
+                        onChange={(e) => handleAdjustment(key, e.target.value)}
+                        className="slider-purple w-full"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Background Effects Quick Access */}
+              {currentBackground && BACKGROUNDS[currentBackground].type !== BACKGROUND_TYPES.STATIC && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-500">
+                    Quick Effects
+                  </h3>
+                  <div className="space-y-3">
+                    {BACKGROUNDS[currentBackground].type === BACKGROUND_TYPES.INTERACTIVE && (
+                      <button
+                        onClick={() => setInteractiveMode(!interactiveMode)}
+                        className={`w-full p-3 rounded-xl text-left transition-all duration-300 ${
+                          interactiveMode
+                            ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white'
+                            : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">Interactive Lighting</span>
+                          <Sun className="w-4 h-4" />
+                        </div>
+                        <p className="text-xs mt-1 opacity-80">
+                          Move cursor to adjust lighting
+                        </p>
+                      </button>
+                    )}
+                    {BACKGROUNDS[currentBackground].type === BACKGROUND_TYPES.THREED && (
+                      <button
+                        onClick={() => setIs3DEnabled(!is3DEnabled)}
+                        className={`w-full p-3 rounded-xl text-left transition-all duration-300 ${
+                          is3DEnabled
+                            ? 'bg-gradient-to-r from-pink-500 to-purple-500 text-white'
+                            : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">3D Effect</span>
+                          <Move3D className="w-4 h-4" />
+                        </div>
+                        <p className="text-xs mt-1 opacity-80">
+                          Move cursor for 3D movement
+                        </p>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="space-y-3 pt-4">
+                <button
+                  onClick={() => setIsExportModalOpen(true)}
+                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white py-3 px-4 rounded-xl font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 shadow-lg shadow-purple-500/25 flex items-center justify-center gap-2"
+                  disabled={!selectedImage || isProcessing}
+                >
+                  <Download className="w-4 h-4" />
+                  Export Image {!isPremiumUser && '(with Watermark)'}
+                </button>
+
+                <button
+                  onClick={handleReset}
+                  className="w-full bg-gray-700/50 text-gray-300 py-3 px-4 rounded-xl font-medium hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                  disabled={!selectedImage || isProcessing}
+                >
+                  Reset All Changes
+                </button>
+
+                {/* Premium Upgrade Button */}
+                {!isPremiumUser && (
+                  <button
+                    onClick={() => setIsPremiumModalOpen(true)}
+                    className="w-full bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 text-white py-3 px-4 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 mt-6"
+                  >
+                    <Crown className="w-4 h-4 text-yellow-500" />
+                    Upgrade to Premium
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+          {/* Background Selection Modal */}
+        {showBackgrounds && (
+          <div className="absolute inset-0 bg-gray-900/95 backdrop-blur-xl rounded-xl border border-gray-700/50 shadow-xl z-30 flex flex-col">
+            <div className="p-4 border-b border-gray-700/50">
+              <div className="flex justify-between items-center">
+                <h3 className="text-white font-semibold flex items-center gap-2">
+                  <Palette className="w-4 h-4 text-pink-500" />
+                  Change Background
+                </h3>
+                <button 
+                  onClick={() => setShowBackgrounds(false)}
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-4 overflow-y-auto custom-scrollbar">
+              <div className="space-y-8">
+                {backgroundCategories.map((category) => (
+                  <div key={category.title}>
+                    <div className="flex items-center gap-2 mb-3">
+                      <h4 className="text-sm font-medium text-gray-400">
+                        {category.title}
+                      </h4>
+                      {category.new && (
+                        <span className="px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded-full text-xs">
+                          New
+                        </span>
+                      )}
+                      {category.premium && !isPremiumUser && (
+                        <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-300 rounded-full text-xs flex items-center gap-1">
+                          <Crown className="w-3 h-3" />
+                          Premium
+                        </span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {category.backgrounds.map((bg) => (
+                        <button
+                          key={bg.id}
+                          onClick={() => handleBackgroundChange(bg.id)}
+                          className={`relative p-3 rounded-lg text-left transition-all duration-300 overflow-hidden group ${
+                            currentBackground === bg.id
+                              ? 'ring-2 ring-pink-500 ring-offset-2 ring-offset-gray-900'
+                              : 'hover:ring-2 hover:ring-purple-500/50'
+                          }`}
+                        >
+                          <div 
+                            className="absolute inset-0 opacity-25 group-hover:opacity-40 transition-opacity"
+                            style={getBackgroundStyle(bg.id)}
+                          />
+                          <div className="relative z-10">
+                            <div className="font-medium text-white flex items-center gap-2">
+                              {bg.label}
+                              {bg.premium && !isPremiumUser && (
+                                <Crown className="w-3 h-3 text-yellow-500" />
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-300">{bg.description}</div>
+                          </div>
+
+                          {/* Premium Preview Button */}
+                          {bg.premium && !isPremiumUser && (
+                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleBackgroundChange(bg.id);
+                                }}
+                                className="bg-yellow-500/20 text-yellow-500 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-yellow-500/30 transition-colors"
+                              >
+                                Preview
+                              </button>
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Premium Upgrade Footer */}
+            {!isPremiumUser && (
+              <div className="p-4 border-t border-gray-700/50 mt-auto">
+                <div className="bg-purple-500/10 rounded-lg p-3 flex items-center justify-between">
+                  <div className="text-sm text-gray-300">
+                    <span className="font-medium text-white">Upgrade to Premium</span>
+                    <br />
+                    to unlock all backgrounds & effects
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowBackgrounds(false);
+                      setIsPremiumModalOpen(true);
+                    }}
+                    className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 transform hover:scale-105 shadow-lg shadow-purple-500/25 text-sm whitespace-nowrap"
+                  >
+                    Upgrade Now
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Export Modal */}
+        {isExportModalOpen && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-gray-900 rounded-2xl p-8 max-w-md w-full m-4 relative">
+              <button 
+                onClick={() => setIsExportModalOpen(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="text-center mb-6">
+                <Download className="w-12 h-12 text-purple-500 mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-white mb-2">Export Image</h2>
+                {!isPremiumUser && (
+                  <div className="bg-purple-500/10 rounded-lg p-3 mt-4">
+                    <p className="text-sm text-gray-300 flex items-center gap-2 justify-center">
+                      <Crown className="w-4 h-4 text-yellow-500" />
+                      Upgrade to Premium for HD exports without watermark
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Format Selection */}
+              <div className="space-y-4 mb-6">
+                <h3 className="text-white font-medium flex items-center gap-2">
+                  Format
+                  {!isPremiumUser && (
+                    <span className="text-xs text-gray-400">
+                      (Some formats require Premium)
+                    </span>
+                  )}
+                </h3>
+                <div className="grid grid-cols-3 gap-3">
+                  {exportFormats.map((fmt) => (
+                    <button
+                      key={fmt.id}
+                      onClick={() => (!fmt.premium || isPremiumUser) && setFormat(fmt.id)}
+                      className={`relative p-3 rounded-lg text-left transition-all duration-300 ${
+                        format === fmt.id 
+                          ? 'bg-purple-500 text-white' 
+                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      } ${(!isPremiumUser && fmt.premium) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{fmt.label}</span>
+                        {(!isPremiumUser && fmt.premium) && (
+                          <Lock className="w-4 h-4 text-yellow-500" />
+                        )}
+                      </div>
+                      <span className="text-xs opacity-75">{fmt.description}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Size Selection */}
+              <div className="space-y-4 mb-6">
+                <h3 className="text-white font-medium flex items-center gap-2">
+                  Size
+                  {!isPremiumUser && (
+                    <span className="text-xs text-gray-400">
+                      (Larger sizes require Premium)
+                    </span>
+                  )}
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {exportSizes.map((sz) => (
+                    <button
+                      key={sz.id}
+                      onClick={() => (!sz.premium || isPremiumUser) && setSize(sz.id)}
+                      className={`relative p-3 rounded-lg text-left transition-all duration-300 ${
+                        size === sz.id 
+                          ? 'bg-purple-500 text-white' 
+                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      } ${(!isPremiumUser && sz.premium) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      {sz.label}
+                      {(!isPremiumUser && sz.premium) && (
+                        <Lock className="w-4 h-4 text-yellow-500 absolute top-3 right-3" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Quality Slider (Premium Only) */}
+              {isPremiumUser && (
+                <div className="space-y-4 mb-6">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-white font-medium">Quality</h3>
+                    <span className="text-sm text-purple-400 font-medium">{quality}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="100"
+                    value={quality}
+                    onChange={(e) => setQuality(parseInt(e.target.value))}
+                    className="slider-purple w-full"
+                  />
+                </div>
+              )}
+
+              {/* Export Buttons */}
+              <div className="space-y-4">
+                <button
+                  onClick={handleExport}
+                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white py-3 px-4 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 shadow-lg shadow-purple-500/25 flex items-center justify-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  Export {!isPremiumUser && 'with Watermark'}
+                </button>
+                {!isPremiumUser && (
+                  <button
+                    onClick={() => {
+                      setIsExportModalOpen(false);
+                      setIsPremiumModalOpen(true);
+                    }}
+                    className="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 py-3 px-4 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Crown className="w-4 h-4 text-yellow-500" />
+                    Upgrade to Premium
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Premium Modal */}
+        {isPremiumModalOpen && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-gray-900 rounded-2xl p-8 max-w-md w-full m-4 relative">
+              <button 
+                onClick={() => setIsPremiumModalOpen(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              
+              <div className="text-center mb-6">
+                <Crown className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-white mb-2">Upgrade to Premium</h2>
+                <p className="text-gray-400">Transform your photos with advanced AI features</p>
+              </div>
+
+              <div className="space-y-4 mb-8">
+                {[
+                  { 
+                    title: 'Interactive 3D Backgrounds', 
+                    description: 'Dynamic environments that respond to movement',
+                    icon: Move3D
+                  },
+                  { 
+                    title: 'Dynamic Lighting', 
+                    description: 'Real-time lighting adjustments with mouse movement',
+                    icon: Sun
+                  },
+                  { 
+                    title: 'HD Export Options', 
+                    description: 'Export in high resolution without watermarks',
+                    icon: ImageIcon
+                  },
+                  { 
+                    title: 'Premium Formats', 
+                    description: 'Export in PNG, WebP, and more',
+                    icon: Download
+                  },
+                  { 
+                    title: 'Advanced Controls', 
+                    description: 'Fine-tune every aspect of your image',
+                    icon: Settings
+                  }
+                ].map((benefit, index) => (
+                  <div key={index} className="flex items-start gap-3">
+                    <div className="p-1.5 bg-purple-500/20 rounded-lg">
+                      <benefit.icon className="w-4 h-4 text-purple-500" />
+                    </div>
+                    <div>
+                      <h4 className="text-white font-medium">{benefit.title}</h4>
+                      <p className="text-gray-400 text-sm">{benefit.description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="relative">
+                {/* Popular badge */}
+                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                  <span className="bg-yellow-500/20 text-yellow-500 text-xs font-medium px-3 py-1 rounded-full">
+                    MOST POPULAR
+                  </span>
+                </div>
+                
+                {/* Price box */}
+                <div className="bg-purple-500/10 rounded-xl p-6 mb-6 text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <span className="text-3xl font-bold text-white">$9.99</span>
+                    <span className="text-gray-400">/month</span>
+                  </div>
+                  <p className="text-sm text-gray-300">Cancel anytime · No commitments</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <button 
+                  onClick={() => {
+                    // Handle subscription
+                    console.log('Subscribing...');
+                    setIsPremiumModalOpen(false);
+                  }}
+                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white py-3 px-4 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 shadow-lg shadow-purple-500/25 flex items-center justify-center gap-2"
+                >
+                  <Crown className="w-4 h-4" />
+                  Upgrade Now
+                </button>
+                <button
+                  onClick={() => setIsPremiumModalOpen(false)}
+                  className="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 py-3 px-4 rounded-xl font-medium transition-colors"
+                >
+                  Maybe Later
+                </button>
+
+                {/* Terms and privacy */}
+                <p className="text-center text-xs text-gray-400 mt-4">
+                  By upgrading, you agree to our{' '}
+                  <button className="text-purple-400 hover:text-purple-300">Terms of Service</button>
+                  {' '}and{' '}
+                  <button className="text-purple-400 hover:text-purple-300">Privacy Policy</button>
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default PhotoEditor;
